@@ -37,7 +37,7 @@ while read ssh_target; do
         scp ./update.sh $ssh_target:~
     else
         echo "Updating $ssh_target..."
-        ssh $ssh_target "nohup ./update.sh  > /dev/null 2>&1 &"
-    end
+        ssh $ssh_target "nohup ./update.sh  > /dev/null 2>&1 &" < /dev/null
+    fi
   fi
 done <$list
