@@ -6,7 +6,6 @@ if [[ $jq_not_found ]]; then
     sudo apt install -y jq
 fi
 
-
 hash curl 2>/dev/null || curl_not_found=true 
 if [[ $curl_not_found ]]; then
     echo "curl not found, installing..."
@@ -61,6 +60,11 @@ if [ -z "$QUEUE_SIZE" ]; then
     QUEUE_SIZE="2"
 fi
 
+port_cmd="-p $PORT:3000"
+if [ -z "$PUBLIC_NET" ]; then
+    port_cmd="-p $(ip -4 addr show eth1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'):$PORT:3000"
+fi
+
 max_concurrency=$(expr $(nproc) / $QUEUE_SIZE)
 
 if [ ! -z "$TOKEN" ]; then
@@ -77,17 +81,26 @@ S3_BUCKET=$S3_BUCKET
 WEBHOOK=$WEBHOOK
 QUEUE_SIZE=$QUEUE_SIZE
 TOKEN=$TOKEN
+PUBLIC_NET=$PUBLIC_NET
+
 " > node.config
 
 docker pull opendronemap/nodeodm
 
-info_url=http://localhost:$PORT/info?token=$TOKEN
-if [ ! -z $(curl -f -s $info_url) ]; then
-    while [ "$(curl -f -s $info_url | jq '.taskQueueCount')" != "0" ]; do 
-        sleep 5; 
-    done;
+ip=$(docker ps --format "{{.Ports}}" | awk -F ":" 'NR==1 {print $1}')
+if [ -z "$ip" ]; then
+    ip="localhost"
+fi
+
+if [ -z "$FORCE" ]; then
+    info_url=http://$ip:$PORT/info?token=$TOKEN
+    if [ ! -z $(curl -f -s $info_url) ]; then
+        while [ "$(curl -f -s $info_url | jq '.taskQueueCount')" != "0" ]; do 
+            sleep 5; 
+        done;
+    fi
 fi
 
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
-docker run -d -p $PORT:3000 --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $token
+docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $token
