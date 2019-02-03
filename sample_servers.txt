@@ -1,2 +1,2 @@
-odm@127.0.0.1|http://localhost:3000/info
-odm@10.0.0.1|http://localhost:3000/info
+odm@127.0.0.1
+odm@10.0.0.1
