@@ -45,7 +45,7 @@ fi
 max_concurrency=$(expr $(nproc) / $QUEUE_SIZE)
 
 if [ ! -z "$TOKEN" ]; then
-    $token=" --token $TOKEN "
+    token=" --token $TOKEN "
 fi
 
 echo "
