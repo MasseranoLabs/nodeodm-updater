@@ -1,5 +1,24 @@
 #!/bin/bash 
 
+hash jq 2>/dev/null || jq_not_found=true 
+if [[ $jq_not_found ]]; then
+    echo "jq not found, installing..."
+    sudo apt install -y jq
+fi
+
+
+hash curl 2>/dev/null || curl_not_found=true 
+if [[ $curl_not_found ]]; then
+    echo "curl not found, installing..."
+    sudo apt install -y curl
+fi
+
+hash docker 2>/dev/null || docker_not_found=true 
+if [[ $docker_not_found ]]; then
+    echo "docker not found, exiting..."
+    exit 1
+fi
+
 if [ -e node.config ];  then
     source node.config
 fi
@@ -60,14 +79,15 @@ QUEUE_SIZE=$QUEUE_SIZE
 TOKEN=$TOKEN
 " > node.config
 
+docker pull opendronemap/nodeodm
+
 info_url=http://localhost:$PORT/info?token=$TOKEN
-if [ ! -z $(curl -f -s $info_url) ];
+if [ ! -z $(curl -f -s $info_url) ]; then
     while [ "$(curl -f -s $info_url | jq '.taskQueueCount')" != "0" ]; do 
         sleep 5; 
     done;
 fi
 
-docker pull opendronemap/nodeodm
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 docker run -d -p $PORT:3000 --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $token
