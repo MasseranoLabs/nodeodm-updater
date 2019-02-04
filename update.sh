@@ -59,6 +59,7 @@ fi
 if [ -z "$QUEUE_SIZE" ]; then
     QUEUE_SIZE="2"
 fi
+queue_cmd="--parallel_queue_processing $QUEUE_SIZE"
 
 port_cmd="-p $PORT:3000"
 if [ -z "$PUBLIC_NET" ]; then
@@ -103,4 +104,4 @@ fi
 
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
-docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $token
+docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $queue_cmd $token
