@@ -86,6 +86,7 @@ PUBLIC_NET=$PUBLIC_NET
 
 " > node.config
 
+docker system prune --force
 docker pull opendronemap/nodeodm
 
 ip=$(docker ps --format "{{.Ports}}" | awk -F ":" 'NR==1 {print $1}')
