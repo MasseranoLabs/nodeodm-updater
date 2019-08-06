@@ -59,6 +59,11 @@ fi
 if [ -z "$QUEUE_SIZE" ]; then
     QUEUE_SIZE="2"
 fi
+
+if [ -z "$IMAGE" ]; then
+    IMAGE="opendronemap/nodeodm"
+fi
+
 queue_cmd="--parallel_queue_processing $QUEUE_SIZE"
 
 port_cmd="-p $PORT:3000"
@@ -66,12 +71,13 @@ if [ -z "$PUBLIC_NET" ]; then
     port_cmd="-p $(ip -4 addr show eth1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'):$PORT:3000"
 fi
 
-max_concurrency=$(expr $(nproc) / $QUEUE_SIZE)
+max_concurrency=$(($(nproc) / $QUEUE_SIZE * 2))
 
 if [ ! -z "$TOKEN" ]; then
     token=" --token $TOKEN "
 fi
 
+if [ ! -e node.config ]; then
 echo "
 PORT=$PORT
 MAX_IMAGES=$MAX_IMAGES
@@ -83,11 +89,20 @@ WEBHOOK=$WEBHOOK
 QUEUE_SIZE=$QUEUE_SIZE
 TOKEN=$TOKEN
 PUBLIC_NET=$PUBLIC_NET
-
+IMAGE=$IMAGE
+DOCKER_REPO=$DOCKER_REPO
+DOCKER_USER=$DOCKER_USER
+DOCKER_PASS=$DOCKER_PASS
 " > node.config
+fi
 
 docker system prune --force
-docker pull opendronemap/nodeodm
+
+if [ ! -z "$DOCKER_USER" ]; then
+	echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin $DOCKER_REPO
+fi	
+
+docker pull $IMAGE
 
 ip=$(docker ps --format "{{.Ports}}" | awk -F ":" 'NR==1 {print $1}')
 if [ -z "$ip" ]; then
@@ -105,4 +120,4 @@ fi
 
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
-docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data opendronemap/nodeodm --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $queue_cmd $token --cleanup_tasks_after 1440
+docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data $IMAGE --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $queue_cmd $token --cleanup_tasks_after 1440
