@@ -71,7 +71,7 @@ if [ -z "$PUBLIC_NET" ]; then
     port_cmd="-p $(ip -4 addr show eth1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'):$PORT:3000"
 fi
 
-max_concurrency=$(($(nproc) / $QUEUE_SIZE * 2))
+max_concurrency=$(($(nproc) / $QUEUE_SIZE))
 
 if [ ! -z "$TOKEN" ]; then
     token=" --token $TOKEN "
@@ -102,6 +102,7 @@ if [ ! -z "$DOCKER_USER" ]; then
 	echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin $DOCKER_REPO
 fi	
 
+old_container_hash=$(docker ps -f "ancestor=$IMAGE" -aq)
 docker pull $IMAGE
 
 ip=$(docker ps --format "{{.Ports}}" | awk -F ":" 'NR==1 {print $1}')
@@ -118,6 +119,6 @@ if [ -z "$FORCE" ]; then
     fi
 fi
 
-docker stop $(docker ps -aq)
-docker rm $(docker ps -aq)
-docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data $IMAGE --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $queue_cmd $token --cleanup_tasks_after 1440
+docker stop $old_container_hash
+docker rm $old_container_hash
+docker run -d $port_cmd --restart always -v $(pwd)/data:/var/www/data $IMAGE --max_images $MAX_IMAGES --s3_access_key $S3_ACCESS --s3_secret_key $S3_SECRET --s3_endpoint $S3_ENDPOINT --s3_bucket $S3_BUCKET --webhook $WEBHOOK --max_concurrency $max_concurrency $queue_cmd $token --cleanup_tasks_after 1440 --max_runtime 5760
