@@ -60,6 +60,10 @@ if [ -z "$QUEUE_SIZE" ]; then
     QUEUE_SIZE="2"
 fi
 
+if [ -z "$MAX_CPUS" ]; then
+    MAX_CPUS=$(nproc)
+fi
+
 if [ -z "$IMAGE" ]; then
     IMAGE="opendronemap/nodeodm"
 fi
@@ -71,7 +75,7 @@ if [ -z "$PUBLIC_NET" ]; then
     port_cmd="-p $(ip -4 addr show eth1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'):$PORT:3000"
 fi
 
-max_concurrency=$(($(nproc) / $QUEUE_SIZE))
+max_concurrency=$(($MAX_CPUS / $QUEUE_SIZE))
 
 if [ ! -z "$TOKEN" ]; then
     token=" --token $TOKEN "
@@ -93,6 +97,7 @@ IMAGE=$IMAGE
 DOCKER_REPO=$DOCKER_REPO
 DOCKER_USER=$DOCKER_USER
 DOCKER_PASS=$DOCKER_PASS
+MAX_CPUS=$MAX_CPUS
 " > node.config
 fi
 
