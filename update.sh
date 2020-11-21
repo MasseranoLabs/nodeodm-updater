@@ -75,7 +75,7 @@ if [ -z "$PUBLIC_NET" ]; then
     port_cmd="-p $(ip -4 addr show eth1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'):$PORT:3000"
 fi
 
-max_concurrency=$(($MAX_CPUS / $QUEUE_SIZE))
+max_concurrency=$MAX_CPUS
 
 if [ ! -z "$TOKEN" ]; then
     token=" --token $TOKEN "
